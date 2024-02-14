@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getPokemonList, getPokemonTypes } from "../services/api";
+import { getPokemonList, getPokemonTypes, getPokemonGenerations } from "../services/api";
 import PokemonList from "../components/PokemonList";
 import Header from "../components/Header";
 
@@ -7,20 +7,36 @@ const Home = () => {
   const [pokemonData, setPokemonData] = useState([]);
   const [offset, setOffset] = useState(0);
   const [nameFilter, setNameFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState(null); // Asegúrate de haber inicializado typeFilter con el valor correcto;
   const [loading, setLoading] = useState(false);
   const [allTypes, setAllTypes] = useState([]);
   const [selectedType, setSelectedType] = useState("");
+  const [allGenerations, setAllGenerations] = useState([]);
+  const [selectedGeneration, setSelectedGeneration] = useState("");
+  const [minId, setMinId] = useState("");
+  const [maxId, setMaxId] = useState("");
 
   const prevOffsetRef = React.useRef();
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-
       const data = await getPokemonList(20, offset);
-      setPokemonData((prevData) => [...prevData, ...data.results]);
 
+      const pokemonDataWithDetails = await Promise.all(
+        data.results.map(async (pokemon) => {
+          const response = await fetch(pokemon.url);
+          const pokemonDetails = await response.json();
+          
+          return {
+            ...pokemon,
+            types: pokemonDetails.types.map((type) => type.type.name),
+            generation: pokemonDetails.species.generation?.name || "Unknown",
+            id: pokemonDetails.id,
+          };
+        })
+      );
+
+      setPokemonData((prevData) => [...prevData, ...pokemonDataWithDetails]);
       setLoading(false);
     };
 
@@ -36,7 +52,13 @@ const Home = () => {
       setAllTypes(types);
     };
 
+    const fetchGenerations = async () => {
+      const generations = await getPokemonGenerations();
+      setAllGenerations(generations);
+    };
+
     fetchTypes();
+    fetchGenerations();
   }, []);
 
   const handleNameFilterChange = (event) => {
@@ -45,6 +67,18 @@ const Home = () => {
 
   const handleTypeDropdownChange = (event) => {
     setSelectedType(event.target.value);
+  };
+
+  const handleGenerationDropdownChange = (event) => {
+    setSelectedGeneration(event.target.value);
+  };
+
+  const handleMinIdChange = (event) => {
+    setMinId(event.target.value);
+  };
+
+  const handleMaxIdChange = (event) => {
+    setMaxId(event.target.value);
   };
 
   const handleScroll = () => {
@@ -65,9 +99,13 @@ const Home = () => {
   }, []);
 
   const filteredPokemon = pokemonData.filter((pokemon) => {
-    const nameMatch = pokemon.name.toLowerCase().includes(nameFilter.toLowerCase());
-    const typeMatch = selectedType ? (pokemon.types && pokemon.types.includes(selectedType)) : true;
-    return nameMatch && typeMatch;
+    const nameMatches = pokemon.name.toLowerCase().includes(nameFilter.toLowerCase());
+    const typeMatches = !selectedType || (Array.isArray(pokemon.types) && pokemon.types.includes(selectedType));
+    const generationMatches = !selectedGeneration || pokemon.generation === selectedGeneration;
+    const idMatches = (!minId || pokemon.id >= parseInt(minId, 10)) &&
+                      (!maxId || pokemon.id <= parseInt(maxId, 10));
+
+    return nameMatches && typeMatches && generationMatches && idMatches;
   });
 
   return (
@@ -89,7 +127,27 @@ const Home = () => {
             </option>
           ))}
         </select>
-        <PokemonList pokemons={filteredPokemon}  nameFilter={nameFilter} typeFilter={typeFilter}/>
+        <select value={selectedGeneration} onChange={handleGenerationDropdownChange}>
+          <option value="">All Generations</option>
+          {allGenerations.map((generation) => (
+            <option key={generation.name} value={generation.name}>
+              {generation.name}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          placeholder="Min ID"
+          value={minId}
+          onChange={handleMinIdChange}
+        />
+        <input
+          type="text"
+          placeholder="Max ID"
+          value={maxId}
+          onChange={handleMaxIdChange}
+        />
+        <PokemonList pokemons={filteredPokemon} />
         
         {loading && <p>Loading...</p>}
       </div>
