@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getPokemonList, getPokemonTypes, getPokemonGenerations } from "../services/api";
+import { getPokemonList, getPokemonTypes } from "../services/api"; //, getPokemonGenerations
 import PokemonList from "../components/PokemonList";
 import Header from "../components/Header";
 
@@ -10,12 +10,12 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [allTypes, setAllTypes] = useState([]);
   const [selectedType, setSelectedType] = useState("");
-  const [allGenerations, setAllGenerations] = useState([]);
-  const [selectedGeneration, setSelectedGeneration] = useState("");
+  // const [allGenerations, setAllGenerations] = useState([]);
+  // const [selectedGeneration, setSelectedGeneration] = useState("");
   const [minId, setMinId] = useState("");
   const [maxId, setMaxId] = useState("");
 
-  const prevOffsetRef = React.useRef();
+  const prevOffsetRef = React.useRef(); //no usar
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,14 +30,14 @@ const Home = () => {
           return {
             ...pokemon,
             types: pokemonDetails.types.map((type) => type.type.name),
-            generation: pokemonDetails.species.generation?.name || "Unknown",
+            // generation: pokemonDetails.species.generation?.name || "Unknown",
             id: pokemonDetails.id,
           };
         })
       );
 
       setPokemonData((prevData) => [...prevData, ...pokemonDataWithDetails]);
-      setLoading(false);
+      setLoading(false);  
     };
 
     if (offset !== prevOffsetRef.current) {
@@ -52,13 +52,13 @@ const Home = () => {
       setAllTypes(types);
     };
 
-    const fetchGenerations = async () => {
-      const generations = await getPokemonGenerations();
-      setAllGenerations(generations);
-    };
+    // const fetchGenerations = async () => {
+    //   const generations = await getPokemonGenerations();
+    //   setAllGenerations(generations);
+    // };
 
     fetchTypes();
-    fetchGenerations();
+    // fetchGenerations();
   }, []);
 
   const handleNameFilterChange = (event) => {
@@ -69,9 +69,9 @@ const Home = () => {
     setSelectedType(event.target.value);
   };
 
-  const handleGenerationDropdownChange = (event) => {
-    setSelectedGeneration(event.target.value);
-  };
+  // const handleGenerationDropdownChange = (event) => {
+  //   setSelectedGeneration(event.target.value);
+  // };
 
   const handleMinIdChange = (event) => {
     setMinId(event.target.value);
@@ -91,21 +91,21 @@ const Home = () => {
   };
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll);//como "suscribirse" (suscripcion de evento)
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleScroll);//para "desuscribirse"
     };
   }, []);
 
   const filteredPokemon = pokemonData.filter((pokemon) => {
     const nameMatches = pokemon.name.toLowerCase().includes(nameFilter.toLowerCase());
     const typeMatches = !selectedType || (Array.isArray(pokemon.types) && pokemon.types.includes(selectedType));
-    const generationMatches = !selectedGeneration || pokemon.generation === selectedGeneration;
+    // const generationMatches = !selectedGeneration || pokemon.generation === selectedGeneration;
     const idMatches = (!minId || pokemon.id >= parseInt(minId, 10)) &&
                       (!maxId || pokemon.id <= parseInt(maxId, 10));
 
-    return nameMatches && typeMatches && generationMatches && idMatches;
+    return nameMatches && typeMatches  && idMatches // && generationMatches;//fallo
   });
 
   return (
@@ -127,14 +127,14 @@ const Home = () => {
             </option>
           ))}
         </select>
-        <select value={selectedGeneration} onChange={handleGenerationDropdownChange}>
+        {/* <select value={selectedGeneration} onChange={handleGenerationDropdownChange}>
           <option value="">All Generations</option>
           {allGenerations.map((generation) => (
             <option key={generation.name} value={generation.name}>
               {generation.name}
             </option>
           ))}
-        </select>
+        </select> */}
         <input
           type="text"
           placeholder="Min ID"
